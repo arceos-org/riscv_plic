@@ -1,5 +1,5 @@
 //! RISC-V Platform-Level Interrupt Controller
-//! https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc
+//! <https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc>
 #![no_std]
 #![feature(const_option)]
 #![feature(const_nonnull_new)]
@@ -89,6 +89,7 @@ pub trait HartContext {
     fn index(self) -> usize;
 }
 
+/// Platform-Level Interrupt Controller.
 pub struct Plic {
     base: NonNull<PLICRegs>,
 }

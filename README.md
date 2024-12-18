@@ -7,3 +7,5 @@
 RISC-V platform-level interrupt controller (PLIC) register definitions and basic operations.
 
 The official documentation: <https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc/>
+
+Ref: <https://github.com/YdrMaster/plic>
