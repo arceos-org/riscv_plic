@@ -13,9 +13,6 @@ use tock_registers::{
     registers::{ReadOnly, ReadWrite},
 };
 
-mod hart;
-pub use hart::*;
-
 /// See §1.
 const SOURCE_NUM: usize = 1024;
 /// See §1.
@@ -81,13 +78,8 @@ impl Plic {
     }
 
     /// Initialize the PLIC by context, setting the priority threshold to 0.
-    pub fn init_by_context<C>(&self, context: C)
-    where
-        C: HartContext,
-    {
-        self.regs().contexts[context.index()]
-            .priority_threshold
-            .set(0);
+    pub fn init_by_context(&self, ctx: usize) {
+        self.regs().contexts[ctx].priority_threshold.set(0);
     }
 
     const fn regs(&self) -> &PLICRegs {
@@ -104,33 +96,33 @@ impl Plic {
     ///
     /// See §4.
     #[inline]
-    pub fn set_priority(&self, source: u32, value: u32) {
-        self.regs().interrupt_priority[source as usize].set(value);
+    pub fn set_priority(&self, source: NonZeroU32, value: u32) {
+        self.regs().interrupt_priority[source.get() as usize].set(value);
     }
 
     /// Gets priority for interrupt `source`.
     ///
     /// See §4.
     #[inline]
-    pub fn get_priority(&self, source: u32) -> u32 {
-        self.regs().interrupt_priority[source as usize].get()
+    pub fn get_priority(&self, source: NonZeroU32) -> u32 {
+        self.regs().interrupt_priority[source.get() as usize].get()
     }
 
     /// Probe maximum level of priority for interrupt `source`.
     ///
     /// See §4.
     #[inline]
-    pub fn probe_priority_bits(&self, source: u32) -> u32 {
-        self.regs().interrupt_priority[source as usize].set(!0);
-        self.regs().interrupt_priority[source as usize].get()
+    pub fn probe_priority_bits(&self, source: NonZeroU32) -> u32 {
+        self.regs().interrupt_priority[source.get() as usize].set(!0);
+        self.regs().interrupt_priority[source.get() as usize].get()
     }
 
     /// Check if interrupt `source` is pending.
     ///
     /// See §5.
     #[inline]
-    pub fn is_pending(&self, source: u32) -> bool {
-        let (group, field) = parse_group_and_field(source as usize);
+    pub fn is_pending(&self, source: NonZeroU32) -> bool {
+        let (group, field) = parse_group_and_field(source.get() as usize);
         self.regs().interrupt_pending[group].read(field) != 0
     }
 
@@ -138,81 +130,55 @@ impl Plic {
     ///
     /// See §6.
     #[inline]
-    pub fn enable<C>(&self, source: u32, context: C)
-    where
-        C: HartContext,
-    {
-        let context = context.index();
-        let (group, field) = parse_group_and_field(source as usize);
+    pub fn enable(&self, source: NonZeroU32, ctx: usize) {
+        let (group, field) = parse_group_and_field(source.get() as usize);
 
-        self.regs().interrupt_enable[context][group].modify(field.val(1));
+        self.regs().interrupt_enable[ctx][group].modify(field.val(1));
     }
 
     /// Disable interrupt `source` in `context`.
     ///
     /// See §6.
     #[inline]
-    pub fn disable<C>(&self, source: u32, context: C)
-    where
-        C: HartContext,
-    {
-        let context = context.index();
-        let (group, field) = parse_group_and_field(source as usize);
+    pub fn disable(&self, source: NonZeroU32, ctx: usize) {
+        let (group, field) = parse_group_and_field(source.get() as usize);
 
-        self.regs().interrupt_enable[context][group].modify(field.val(0));
+        self.regs().interrupt_enable[ctx][group].modify(field.val(0));
     }
 
     /// Check if interrupt `source` is enabled in `context`.
     ///
     /// See §6.
     #[inline]
-    pub fn is_enabled<C>(&self, source: u32, context: C) -> bool
-    where
-        C: HartContext,
-    {
-        let context = context.index();
-        let (group, field) = parse_group_and_field(source as usize);
+    pub fn is_enabled(&self, source: NonZeroU32, ctx: usize) -> bool {
+        let (group, field) = parse_group_and_field(source.get() as usize);
 
-        self.regs().interrupt_enable[context][group].read(field) != 0
+        self.regs().interrupt_enable[ctx][group].read(field) != 0
     }
 
     /// Get interrupt threshold in `context`.
     ///
     /// See §7.
     #[inline]
-    pub fn get_threshold<C>(&self, context: C) -> u32
-    where
-        C: HartContext,
-    {
-        self.regs().contexts[context.index()]
-            .priority_threshold
-            .get()
+    pub fn get_threshold(&self, ctx: usize) -> u32 {
+        self.regs().contexts[ctx].priority_threshold.get()
     }
 
     /// Set interrupt threshold for `context` to `value`.
     ///
     /// See §7.
     #[inline]
-    pub fn set_threshold<C>(&self, context: C, value: u32)
-    where
-        C: HartContext,
-    {
-        self.regs().contexts[context.index()]
-            .priority_threshold
-            .set(value);
+    pub fn set_threshold(&self, ctx: usize, value: u32) {
+        self.regs().contexts[ctx].priority_threshold.set(value);
     }
 
     /// Probe maximum supported threshold value the `context` supports.
     ///
     /// See §7.
     #[inline]
-    pub fn probe_threshold_bits<C>(&self, context: C) -> u32
-    where
-        C: HartContext,
-    {
-        let context = context.index();
-        self.regs().contexts[context].priority_threshold.set(!0);
-        self.regs().contexts[context].priority_threshold.get()
+    pub fn probe_threshold_bits(&self, ctx: usize) -> u32 {
+        self.regs().contexts[ctx].priority_threshold.set(!0);
+        self.regs().contexts[ctx].priority_threshold.get()
     }
 
     /// Claim an interrupt in `context`, returning its source.
@@ -224,26 +190,16 @@ impl Plic {
     ///
     /// See §8.
     #[inline]
-    pub fn claim<C>(&self, context: C) -> Option<NonZeroU32>
-    where
-        C: HartContext,
-    {
-        NonZeroU32::new(
-            self.regs().contexts[context.index()]
-                .interrupt_claim_complete
-                .get(),
-        )
+    pub fn claim(&self, ctx: usize) -> Option<NonZeroU32> {
+        NonZeroU32::new(self.regs().contexts[ctx].interrupt_claim_complete.get())
     }
 
     /// Mark that interrupt identified by `source` is completed in `context`.
     ///
     /// See §9.
     #[inline]
-    pub fn complete<C>(&self, context: C, source: NonZeroU32)
-    where
-        C: HartContext,
-    {
-        self.regs().contexts[context.index()]
+    pub fn complete(&self, ctx: usize, source: NonZeroU32) {
+        self.regs().contexts[ctx]
             .interrupt_claim_complete
             .set(source.get());
     }
