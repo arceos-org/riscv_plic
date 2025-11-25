@@ -34,7 +34,7 @@ register_structs! {
 }
 
 register_structs! {
-  PLICRegs {
+  pub PLICRegs {
     /// Interrupt Source Priority #0 to #1023
     (0x000000 => interrupt_priority: [ReadWrite<u32>; SOURCE_NUM]),
     /// Interrupt Pending Bit of Interrupt Source #0 to #N
@@ -70,11 +70,10 @@ impl Plic {
     ///
     /// # Safety
     ///
-    /// The caller must ensure that `base` is a valid base address of PLIC.
-    pub const unsafe fn new(base: usize) -> Self {
-        Self {
-            base: unsafe { NonNull::new_unchecked(base as *mut _) },
-        }
+    /// `base` must be a unique valid pointer to PLIC memory-mapped registers.
+    #[inline]
+    pub const unsafe fn new(base: NonNull<PLICRegs>) -> Self {
+        Self { base }
     }
 
     /// Initialize the PLIC by context, setting the priority threshold to 0.
