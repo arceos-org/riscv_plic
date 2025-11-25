@@ -78,7 +78,7 @@ impl Plic {
     }
 
     /// Initialize the PLIC by context, setting the priority threshold to 0.
-    pub fn init_by_context(&self, ctx: usize) {
+    pub fn init_by_context(&mut self, ctx: usize) {
         self.regs().contexts[ctx].priority_threshold.set(0);
     }
 
@@ -96,7 +96,7 @@ impl Plic {
     ///
     /// See §4.
     #[inline]
-    pub fn set_priority(&self, source: NonZeroU32, value: u32) {
+    pub fn set_priority(&mut self, source: NonZeroU32, value: u32) {
         self.regs().interrupt_priority[source.get() as usize].set(value);
     }
 
@@ -112,7 +112,7 @@ impl Plic {
     ///
     /// See §4.
     #[inline]
-    pub fn probe_priority_bits(&self, source: NonZeroU32) -> u32 {
+    pub fn probe_priority_bits(&mut self, source: NonZeroU32) -> u32 {
         self.regs().interrupt_priority[source.get() as usize].set(!0);
         self.regs().interrupt_priority[source.get() as usize].get()
     }
@@ -130,7 +130,7 @@ impl Plic {
     ///
     /// See §6.
     #[inline]
-    pub fn enable(&self, source: NonZeroU32, ctx: usize) {
+    pub fn enable(&mut self, source: NonZeroU32, ctx: usize) {
         let (group, field) = parse_group_and_field(source.get() as usize);
 
         self.regs().interrupt_enable[ctx][group].modify(field.val(1));
@@ -140,7 +140,7 @@ impl Plic {
     ///
     /// See §6.
     #[inline]
-    pub fn disable(&self, source: NonZeroU32, ctx: usize) {
+    pub fn disable(&mut self, source: NonZeroU32, ctx: usize) {
         let (group, field) = parse_group_and_field(source.get() as usize);
 
         self.regs().interrupt_enable[ctx][group].modify(field.val(0));
@@ -168,7 +168,7 @@ impl Plic {
     ///
     /// See §7.
     #[inline]
-    pub fn set_threshold(&self, ctx: usize, value: u32) {
+    pub fn set_threshold(&mut self, ctx: usize, value: u32) {
         self.regs().contexts[ctx].priority_threshold.set(value);
     }
 
@@ -176,7 +176,7 @@ impl Plic {
     ///
     /// See §7.
     #[inline]
-    pub fn probe_threshold_bits(&self, ctx: usize) -> u32 {
+    pub fn probe_threshold_bits(&mut self, ctx: usize) -> u32 {
         self.regs().contexts[ctx].priority_threshold.set(!0);
         self.regs().contexts[ctx].priority_threshold.get()
     }
@@ -190,7 +190,7 @@ impl Plic {
     ///
     /// See §8.
     #[inline]
-    pub fn claim(&self, ctx: usize) -> Option<NonZeroU32> {
+    pub fn claim(&mut self, ctx: usize) -> Option<NonZeroU32> {
         NonZeroU32::new(self.regs().contexts[ctx].interrupt_claim_complete.get())
     }
 
@@ -198,7 +198,7 @@ impl Plic {
     ///
     /// See §9.
     #[inline]
-    pub fn complete(&self, ctx: usize, source: NonZeroU32) {
+    pub fn complete(&mut self, ctx: usize, source: NonZeroU32) {
         self.regs().contexts[ctx]
             .interrupt_claim_complete
             .set(source.get());
