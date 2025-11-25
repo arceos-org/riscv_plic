@@ -21,40 +21,41 @@ const CONTEXT_NUM: usize = 15872;
 const U32_BITS: usize = u32::BITS as usize;
 
 register_structs! {
-  ContextLocal {
-    /// Priority Threshold
-    /// - The base address of Priority Thresholds register block is located at 4K alignment starts from offset 0x200000.
-    (0x0000 => priority_threshold: ReadWrite<u32>),
-    /// Interrupt Claim/complete Process
-    /// - The Interrupt Claim Process register is context based and is located at (4K alignment + 4) starts from offset 0x200000.
-    (0x0004 => interrupt_claim_complete: ReadWrite<u32>),
-    (0x0008 => _reserved_0),
-    (0x1000 => @END),
-  }
+    ContextLocal {
+        /// Priority Threshold
+        /// - The base address of Priority Thresholds register block is located at 4K alignment starts from offset 0x200000.
+        (0x0000 => priority_threshold: ReadWrite<u32>),
+        /// Interrupt Claim/complete Process
+        /// - The Interrupt Claim Process register is context based and is located at (4K alignment + 4) starts from offset 0x200000.
+        (0x0004 => interrupt_claim_complete: ReadWrite<u32>),
+        (0x0008 => _reserved_0),
+        (0x1000 => @END),
+    }
 }
 
 register_structs! {
-  pub PLICRegs {
-    /// Interrupt Source Priority #0 to #1023
-    (0x000000 => interrupt_priority: [ReadWrite<u32>; SOURCE_NUM]),
-    /// Interrupt Pending Bit of Interrupt Source #0 to #N
-    /// 0x001000: Interrupt Source #0 to #31 Pending Bits
-    /// ...
-    /// 0x00107C: Interrupt Source #992 to #1023 Pending Bits
-    (0x001000 => interrupt_pending: [ReadOnly<u32>; SOURCE_NUM / U32_BITS]),
-    (0x001080 => _reserved_0),
-    /// Interrupt Enable Bit of Interrupt Source #0 to #1023 for 15872 contexts
-    (0x002000 => interrupt_enable: [[ReadWrite<u32>; SOURCE_NUM / U32_BITS]; CONTEXT_NUM]),
-    (0x1F2000 => _reserved_1),
-    /// 4096 * 15872 = 65011712(0x3e000 00) bytes
-    /// Priority Threshold for 15872 contexts
-    /// - The base address of Priority Thresholds register block is located at 4K alignment starts from offset 0x200000.
-    /// Interrupt Claim Process for 15872 contexts
-    /// - The Interrupt Claim Process register is context based and is located at (4K alignment + 4) starts from offset 0x200000.
-    /// - The Interrupt Completion registers are context based and located at the same address with Interrupt Claim Process register, which is at (4K alignment + 4) starts from offset 0x200000.
-    (0x200000 => contexts: [ContextLocal; CONTEXT_NUM]),
-    (0x4000000 => @END),
-  }
+    /// PLIC registers
+    pub PLICRegs {
+        /// Interrupt Source Priority #0 to #1023
+        (0x000000 => interrupt_priority: [ReadWrite<u32>; SOURCE_NUM]),
+        /// Interrupt Pending Bit of Interrupt Source #0 to #N
+        /// 0x001000: Interrupt Source #0 to #31 Pending Bits
+        /// ...
+        /// 0x00107C: Interrupt Source #992 to #1023 Pending Bits
+        (0x001000 => interrupt_pending: [ReadOnly<u32>; SOURCE_NUM / U32_BITS]),
+        (0x001080 => _reserved_0),
+        /// Interrupt Enable Bit of Interrupt Source #0 to #1023 for 15872 contexts
+        (0x002000 => interrupt_enable: [[ReadWrite<u32>; SOURCE_NUM / U32_BITS]; CONTEXT_NUM]),
+        (0x1F2000 => _reserved_1),
+        /// 4096 * 15872 = 65011712(0x3e000 00) bytes
+        /// Priority Threshold for 15872 contexts
+        /// - The base address of Priority Thresholds register block is located at 4K alignment starts from offset 0x200000.
+        /// Interrupt Claim Process for 15872 contexts
+        /// - The Interrupt Claim Process register is context based and is located at (4K alignment + 4) starts from offset 0x200000.
+        /// - The Interrupt Completion registers are context based and located at the same address with Interrupt Claim Process register, which is at (4K alignment + 4) starts from offset 0x200000.
+        (0x200000 => contexts: [ContextLocal; CONTEXT_NUM]),
+        (0x4000000 => @END),
+    }
 }
 
 /// Platform-Level Interrupt Controller.
